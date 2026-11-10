@@ -1,6 +1,8 @@
 package dev.rdh.argentum.impl.render.terrain;
 
 import org.embeddedt.embeddium.impl.gl.device.CommandList;
+import org.embeddedt.embeddium.impl.render.viewport.CameraTransform;
+import org.embeddedt.embeddium.impl.render.viewport.Viewport;
 import org.embeddedt.embeddium.impl.gl.device.RenderDevice;
 import org.embeddedt.embeddium.impl.render.chunk.ChunkRenderMatrices;
 import org.embeddedt.embeddium.impl.render.chunk.vertex.format.ChunkMeshFormats;
@@ -18,6 +20,7 @@ import dev.rdh.argentum.impl.render.entity.EntityOcclusionCuller;
 import dev.rdh.argentum.impl.render.entity.EntityGatherer;
 import dev.rdh.argentum.impl.render.entity.EntityShadowBatch;
 import dev.rdh.argentum.impl.render.entity.NameTagBatch;
+import dev.rdh.argentum.impl.render.particle.ParticleCapture;
 import dev.rdh.argentum.impl.render.entity.instancing.EntityInstancing;
 import dev.rdh.argentum.impl.render.entity.instancing.ModelInstancer;
 import dev.rdh.argentum.impl.render.environment.WeatherRenderer;
@@ -54,6 +57,7 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     private final EntityOcclusionCuller entityOcclusionCuller = new EntityOcclusionCuller(this);
     private final EntityShadowBatch entityShadowBatch = new EntityShadowBatch();
     private final NameTagBatch nameTagBatch = new NameTagBatch();
+    private final ParticleCapture particleCapture = new ParticleCapture();
     private final ModelInstancer modelInstancer = new ModelInstancer();
     private final EntityInstancing entityInstancing = new EntityInstancing(this.modelInstancer);
     private final WeatherRenderer weatherRenderer = new WeatherRenderer();
@@ -143,6 +147,10 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
 
     public EntityInstancing getEntityInstancing() {
         return this.entityInstancing;
+    }
+
+    public ParticleCapture getParticleCapture() {
+        return this.particleCapture;
     }
 
     public NameTagBatch getNameTagBatch() {
@@ -320,8 +328,16 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     }
 
     public boolean isParticleInFrustum(Particle particle) {
-        var box = this.cullableParticleBox(particle);
-        return box == null || this.getLastViewport().isBoxVisible(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+        Viewport viewport = this.getLastViewport();
+        if (!Argentum.CONFIG.particleCulling || viewport == null || !(viewport.getFrustum() instanceof PlaneFrustum frustum)) {
+            return true;
+        }
+        CameraTransform camera = viewport.getTransform();
+        float x = (float)(particle.x - camera.intX) - camera.fracX;
+        float y = (float)(particle.y - camera.intY) - camera.fracY;
+        float z = (float)(particle.z - camera.intZ) - camera.fracZ;
+        float halfWidth = particle.width / 2.0F;
+        return frustum.testAab(x - halfWidth, y, z - halfWidth, x + halfWidth, y + particle.height, z + halfWidth);
     }
 
     private Box cullableParticleBox(Particle particle) {
