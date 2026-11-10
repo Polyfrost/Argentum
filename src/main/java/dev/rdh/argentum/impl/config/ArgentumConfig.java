@@ -1,5 +1,6 @@
 package dev.rdh.argentum.impl.config;
 
+import com.google.gson.annotations.SerializedName;
 import org.embeddedt.embeddium.impl.render.chunk.occlusion.AsyncOcclusionMode;
 
 import dev.rdh.argentum.impl.render.terrain.fog.ArgentumFogService.FogShape;
@@ -34,7 +35,9 @@ public class ArgentumConfig {
     public boolean checkGlErrors = false;
     public boolean fontBatching = true;
     public boolean guiItemAtlas = true;
-    public boolean directRendering = false;
+    // Off on macOS, where it measured slower than rendering offscreen and copying.
+    @SerializedName("direct_rendering_v2")
+    public boolean directRendering = !System.getProperty("os.name").startsWith("Mac");
     public boolean greedyRenderThread = false;
     public boolean explicitVsyncOption = true; // file only
     public boolean exclusiveFullscreen = false;
