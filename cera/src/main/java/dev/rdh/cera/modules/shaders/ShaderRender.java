@@ -2,11 +2,21 @@ package dev.rdh.cera.modules.shaders;
 
 import dev.rdh.argentum.impl.render.entity.instancing.EntityCapture;
 import com.ventooth.swansong.shader.StateGraph.Stack;
+import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.platform.GLX;
+import net.minecraft.client.render.platform.GlStateManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ShaderRender {
     private static boolean textBatchPushed;
+    private static final List<SignBlockEntity> deferredSigns = new ArrayList<>();
+    private static boolean deferringSignText;
+    private static boolean signTextPass;
 
     private ShaderRender() {
     }
@@ -56,6 +66,53 @@ public final class ShaderRender {
         if (textBatchPushed) {
             textBatchPushed = false;
             pop(Stack.Text);
+        }
+    }
+
+    public static void beginSignTextDeferral() {
+        deferredSigns.clear();
+        deferringSignText = isManaged();
+    }
+
+    public static boolean isDeferringSignText() {
+        return deferringSignText && !signTextPass;
+    }
+
+    public static boolean isSignTextPass() {
+        return signTextPass;
+    }
+
+    public static void deferSignText(SignBlockEntity sign) {
+        if (isDeferringSignText() && (deferredSigns.isEmpty() || deferredSigns.getLast() != sign)) {
+            deferredSigns.add(sign);
+        }
+    }
+
+    public static void discardDeferredSignText() {
+        deferringSignText = false;
+        deferredSigns.clear();
+    }
+
+    public static void renderDeferredSignText(float tickDelta) {
+        deferringSignText = false;
+        if (deferredSigns.isEmpty()) return;
+
+        BlockEntityRenderDispatcher dispatcher = BlockEntityRenderDispatcher.INSTANCE;
+        signTextPass = true;
+        try {
+            for (SignBlockEntity sign : deferredSigns) {
+                var pos = sign.getPos();
+                int light = dispatcher.world.getLightColor(pos, 0);
+                GLX.multiTexCoord2f(GLX.GL_TEXTURE1, light % 65536, light / 65536);
+                GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+                BlockEntityRenderer<SignBlockEntity> renderer = dispatcher.getRenderer(sign);
+                renderer.render(sign, pos.getX() - BlockEntityRenderDispatcher.offsetX, pos.getY() - BlockEntityRenderDispatcher.offsetY,
+                        pos.getZ() - BlockEntityRenderDispatcher.offsetZ, tickDelta, -1);
+            }
+        } finally {
+            signTextPass = false;
+            deferredSigns.clear();
+            popTextBatch();
         }
     }
 
