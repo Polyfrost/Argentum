@@ -6,6 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.platform.GLX;
 
 public final class ShaderRender {
+    private static boolean textBatchPushed;
+
     private ShaderRender() {
     }
 
@@ -36,6 +38,24 @@ public final class ShaderRender {
     public static void pop(Stack stack) {
         if (isManaged()) {
             Minecraft.getInstance().cera$getShaderEngine().graph().pop(stack);
+        }
+    }
+
+    public static boolean isTextBatchPushed() {
+        return textBatchPushed;
+    }
+
+    public static void pushTextBatch() {
+        if (!textBatchPushed && isManaged()) {
+            push(Stack.Text);
+            textBatchPushed = true;
+        }
+    }
+
+    public static void popTextBatch() {
+        if (textBatchPushed) {
+            textBatchPushed = false;
+            pop(Stack.Text);
         }
     }
 
