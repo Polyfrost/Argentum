@@ -35,9 +35,8 @@ public class ArgentumConfig {
     public boolean checkGlErrors = false;
     public boolean fontBatching = true;
     public boolean guiItemAtlas = true;
-    // Off on macOS, where it measured slower than rendering offscreen and copying.
-    @SerializedName("direct_rendering_v2")
-    public boolean directRendering = !System.getProperty("os.name").startsWith("Mac");
+    @SerializedName("direct_rendering_v3")
+    public boolean directRendering = false;
     public boolean greedyRenderThread = false;
     public boolean explicitVsyncOption = true; // file only
     public boolean exclusiveFullscreen = false;
