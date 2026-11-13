@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiElement;
 import net.minecraft.client.gui.chat.ChatGui;
 import net.minecraft.client.render.platform.GlStateManager;
+import net.minecraft.text.Text;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -28,6 +29,11 @@ public abstract class ChatGuiMixin extends GuiElement {
 
     @Unique
     private HudBatch.Text argentum$textBatch;
+
+    @Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"), cancellable = true)
+    private void argentum$skipDeferredScreenshotMessage(Text message, CallbackInfo ci) {
+        if (message == null) ci.cancel();
+    }
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void argentum$createBackgroundBatch(Minecraft minecraft, CallbackInfo ci) {
