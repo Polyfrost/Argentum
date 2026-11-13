@@ -1,5 +1,9 @@
 package dev.rdh.argentum.mixin.features.framebuffer;
 
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -10,14 +14,17 @@ import dev.rdh.argentum.impl.Argentum;
 import dev.rdh.argentum.impl.ext.MinecraftExtension;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GameGui;
+import net.minecraft.client.gui.chat.ChatGui;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.pipeline.RenderTarget;
 import net.minecraft.client.render.platform.GLX;
 import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.text.Text;
 
-import java.util.function.Supplier;
+import java.io.File;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin implements MinecraftExtension {
@@ -33,6 +40,19 @@ public abstract class MinecraftMixin implements MinecraftExtension {
     @Shadow
     public GameGui gui;
 
+    @Shadow
+    @Final
+    public File gameDir;
+
+    @Shadow
+    public int width;
+
+    @Shadow
+    public int height;
+
+    @Shadow
+    private RenderTarget renderTarget;
+
     @Unique
     private boolean argentum$renderingDirect;
 
@@ -40,7 +60,7 @@ public abstract class MinecraftMixin implements MinecraftExtension {
     private boolean argentum$framebufferRequested;
 
     @Unique
-    private Supplier<Text> argentum$pendingScreenshot;
+    private boolean argentum$screenshotRequested;
 
     @Override
     public boolean argentum$isRenderingDirect() {
@@ -62,17 +82,22 @@ public abstract class MinecraftMixin implements MinecraftExtension {
         this.argentum$framebufferRequested = false;
     }
 
-    @Override
-    public void argentum$deferScreenshot(Supplier<Text> screenshot) {
-        this.argentum$pendingScreenshot = screenshot;
-        this.argentum$framebufferRequested = true;
+    @WrapOperation(method = "handleGuiKeyBindings", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Screenshot;take(Ljava/io/File;IILnet/minecraft/client/render/pipeline/RenderTarget;)Lnet/minecraft/text/Text;"))
+    private Text argentum$deferScreenshot(File gameDir, int width, int height, RenderTarget target, Operation<Text> original) {
+        this.argentum$screenshotRequested = true;
+        return null;
+    }
+
+    @WrapWithCondition(method = "handleGuiKeyBindings", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/chat/ChatGui;addMessage(Lnet/minecraft/text/Text;)V"))
+    private boolean argentum$skipDeferredScreenshotMessage(ChatGui chat, Text message) {
+        return message != null;
     }
 
     @Inject(method = "runGame", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;updateDisplay()V"))
     private void argentum$takeScreenshot(CallbackInfo ci) {
-        Supplier<Text> screenshot = this.argentum$pendingScreenshot;
-        if (screenshot == null) return;
-        this.argentum$pendingScreenshot = null;
-        this.gui.getChat().addMessage(screenshot.get());
+        if (!this.argentum$screenshotRequested) return;
+        this.argentum$screenshotRequested = false;
+        GLX.bindFramebuffer(GLX.GL_FRAMEBUFFER, 0);
+        this.gui.getChat().addMessage(Screenshot.take(this.gameDir, this.width, this.height, this.renderTarget));
     }
 }

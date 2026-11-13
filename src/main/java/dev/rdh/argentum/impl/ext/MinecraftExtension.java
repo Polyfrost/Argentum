@@ -3,20 +3,12 @@ package dev.rdh.argentum.impl.ext;
 import dev.rdh.argentum.api.render.instancing.InstanceDrawTarget;
 import dev.rdh.argentum.api.render.terrain.TerrainDrawTarget;
 
-import net.minecraft.text.Text;
-
-import java.util.function.Supplier;
-
 public interface MinecraftExtension {
     default boolean argentum$isRenderingDirect() {
         throw new UnsupportedOperationException();
     }
 
     default void argentum$requestFramebuffer() {
-        throw new UnsupportedOperationException();
-    }
-
-    default void argentum$deferScreenshot(Supplier<Text> screenshot) {
         throw new UnsupportedOperationException();
     }
 
