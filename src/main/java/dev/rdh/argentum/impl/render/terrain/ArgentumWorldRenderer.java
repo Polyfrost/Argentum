@@ -236,12 +236,6 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     }
 
     @Override
-    protected void initRenderer(CommandList commandList) {
-        super.initRenderer(commandList);
-        ChunkTrackerHolder.get(this.world).forEachEvent((x, z) -> {}, (x, z) -> {});
-    }
-
-    @Override
     protected ArgentumRenderSectionManager createRenderSectionManager(CommandList commandList) {
         ChunkTrackerHolder.get(this.world).setRequiredNeighborRadius(Argentum.CONFIG.safeChunkEdges ? 1 : 0);
         TerrainDrawTarget target = ((MinecraftExtension)Minecraft.getInstance()).argentum$getTerrainDrawTarget();
