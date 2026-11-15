@@ -38,7 +38,7 @@ public class GameOptionsMixin {
 
     @ModifyExpressionValue(method = "save", at = @At(value = "FIELD", target = "Lnet/minecraft/client/options/GameOptions;fpsLimit:I", opcode = Opcodes.GETFIELD))
     private int argentum$saveUnlimitedFramerateAsVanillaMax(int fpsLimit) {
-        return fpsLimit >= 1500 ? 260 : fpsLimit;
+        return fpsLimit == 1500 ? 260 : (fpsLimit == 260 ? 261 : fpsLimit);
     }
 
     @ModifyExpressionValue(
@@ -49,7 +49,7 @@ public class GameOptionsMixin {
             )
     )
     private int argentum$loadVanillaMaxFramerateAsUnlimited(int fpsLimit) {
-        return fpsLimit == 260 ? 1500 : fpsLimit;
+        return fpsLimit == 260 ? 1500 : (fpsLimit == 261 ? 260 : fpsLimit);
     }
 
     @Inject(method = "<init>(Lnet/minecraft/client/Minecraft;Ljava/io/File;)V", at = @At("RETURN"))

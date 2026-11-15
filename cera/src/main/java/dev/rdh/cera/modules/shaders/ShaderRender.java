@@ -82,10 +82,16 @@ public final class ShaderRender {
         return signTextPass;
     }
 
-    public static void deferSignText(SignBlockEntity sign) {
+    public static boolean deferSignText(SignBlockEntity sign) {
         if (isDeferringSignText() && (deferredSigns.isEmpty() || deferredSigns.getLast() != sign)) {
             deferredSigns.add(sign);
+            return true;
         }
+        return false;
+    }
+
+    public static void undeferLastSignText() {
+        deferredSigns.removeLast();
     }
 
     public static void discardDeferredSignText() {
@@ -98,9 +104,11 @@ public final class ShaderRender {
         if (deferredSigns.isEmpty()) return;
 
         BlockEntityRenderDispatcher dispatcher = BlockEntityRenderDispatcher.INSTANCE;
+        var engine = Minecraft.getInstance().cera$getShaderEngine();
         signTextPass = true;
         try {
             for (SignBlockEntity sign : deferredSigns) {
+                engine.nextBlockEntity(sign);
                 var pos = sign.getPos();
                 int light = dispatcher.world.getLightColor(pos, 0);
                 GLX.multiTexCoord2f(GLX.GL_TEXTURE1, light % 65536, light / 65536);

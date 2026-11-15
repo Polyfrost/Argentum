@@ -18,9 +18,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class SignRendererMixin {
     @WrapMethod(method = "render(Lnet/minecraft/block/entity/SignBlockEntity;DDDFI)V")
     private void cera$popSignText(SignBlockEntity sign, double x, double y, double z, float tickDelta, int breakProgress, Operation<Void> original) {
-        if (breakProgress < 0) ShaderRender.deferSignText(sign);
+        boolean deferred = breakProgress < 0 && ShaderRender.deferSignText(sign);
         try {
             original.call(sign, x, y, z, tickDelta, breakProgress);
+        } catch (RuntimeException e) {
+            if (deferred) ShaderRender.undeferLastSignText();
+            throw e;
         } finally {
             if (!ShaderRender.isSignTextPass()) ShaderRender.popTextBatch();
         }

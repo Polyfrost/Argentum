@@ -21,6 +21,7 @@ import org.embeddedt.embeddium.impl.render.chunk.shader.ChunkShaderTextureSlot;
 import org.embeddedt.embeddium.impl.render.chunk.vertex.format.ChunkVertexType;
 import org.embeddedt.embeddium.impl.render.viewport.Viewport;
 import org.embeddedt.embeddium.impl.util.position.SectionPos;
+import org.embeddedt.embeddium.impl.util.task.CancellationToken;
 import org.jetbrains.annotations.Nullable;
 import dev.rdh.argentum.api.render.terrain.TerrainDrawTarget;
 import dev.rdh.argentum.impl.Argentum;
@@ -140,6 +141,11 @@ public class ArgentumRenderSectionManager extends RenderSectionManager {
 
     @Override
     protected @Nullable ChunkBuilderTask<ChunkBuildOutput> createRebuildTask(RenderSection render, int frame) {
+        CancellationToken previous = render.getBuildCancellationToken();
+        if (previous != null) {
+            previous.setCancelled();
+        }
+
         ChunkRenderContext context = ChunkRenderContext.prepare(this.world,
                 new SectionPos(render.getChunkX(), render.getChunkY(), render.getChunkZ()), this.sectionCache
         );
@@ -154,6 +160,12 @@ public class ArgentumRenderSectionManager extends RenderSectionManager {
     protected void scheduleSectionForRebuild(int x, int y, int z, boolean important) {
         this.sectionCache.invalidate(x, y, z);
         super.scheduleSectionForRebuild(x, y, z, important);
+        int frame = this.renderListManager.getLastUpdatedFrame();
+        if (this.sectionsRequestingUpdate.removeIf(section -> section.getLastSubmittedFrame() >= frame
+                && (section.getLastBuiltFrame() < section.getLastSubmittedFrame()
+                        || section.getPendingUpdate() == null || !section.getPendingUpdate().isImportant()))) {
+            this.markGraphDirty();
+        }
     }
 
     @Override

@@ -8,6 +8,7 @@ import dev.rdh.argentum.extras.CeraCompat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.platform.GlStateManager;
+import net.minecraft.client.render.platform.Lighting;
 import net.minecraft.client.render.vertex.VertexBuffer;
 import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
@@ -42,13 +43,14 @@ public class WorldRendererMixin {
         if (this.world.dimension.getId() == 1 || !this.world.dimension.isNatural()) return;
         // the black void box below the horizon still draws with the sky off
         if (this.minecraft.player.getEyePosition(tickDelta).y < this.world.getHorizonHeight()) return;
-        if (CeraCompat.hasCustomSky((WorldRenderer) (Object) this, this.world)) return;
+        if (CeraCompat.shadersActive() || CeraCompat.hasCustomSky((WorldRenderer) (Object) this, this.world)) return;
 
         GlStateManager.disableBlend();
         GlStateManager.enableAlphaTest();
         GlStateManager.enableFog();
         GlStateManager.enableTexture();
         GlStateManager.depthMask(true);
+        Lighting.turnOff();
         ci.cancel();
     }
 
@@ -120,7 +122,7 @@ public class WorldRendererMixin {
     // but it seems to work
     @WrapWithCondition(method = "renderSky", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/platform/GlStateManager;callList(I)V", ordinal = 3))
     private boolean argentumExtras$drawLowerSky(int list) {
-        return ArgentumExtras.CONFIG.lowerSky && ArgentumExtras.CONFIG.sky;
+        return ArgentumExtras.CONFIG.drawLowerSky && ArgentumExtras.CONFIG.sky;
     }
 
     @ModifyExpressionValue(method = "renderFancyClouds", at = @At(value = "CONSTANT", args = "doubleValue=0.029999999329447746")) // lmao

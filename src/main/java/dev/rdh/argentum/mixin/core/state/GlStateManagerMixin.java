@@ -75,6 +75,12 @@ public abstract class GlStateManagerMixin {
         GlStateMirror.viewport(x, y, width, height);
     }
 
+    @Inject(method = "blendFunc", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glBlendFunc(II)V", remap = false))
+    private static void argentum$cacheBlendAlpha(int source, int destination, CallbackInfo ci) {
+        GlStateManager.BLEND.sfactorAlpha = source;
+        GlStateManager.BLEND.dfactorAlpha = destination;
+    }
+
     @Inject(method = "getFloat", at = @At("HEAD"), cancellable = true)
     private static void argentum$getFloat(int parameter, FloatBuffer out, CallbackInfo ci) {
         if (!GlStateMirror.readMatrix(parameter, out)) return;
