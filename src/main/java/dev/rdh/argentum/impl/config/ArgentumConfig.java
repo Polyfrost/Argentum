@@ -14,14 +14,19 @@ public class ArgentumConfig {
     public boolean entityInstancing = true;
     public boolean bakeBlockEntities = true;
     public boolean nameTagBatching = true;
+    public boolean hologramFastPath = true;
+    public boolean tickCulling = true;
+    public boolean entityShadowCache = true;
     public int entityOcclusionIntervalMs = 50;
     public boolean particleCulling = true;
     public boolean fastParticles = true;
+    public boolean particleLightCache = true;
     public boolean blockFaceCulling = true;
     public boolean rasterCulling = false;
     public boolean translucencySorting = true;
     public boolean renderPassOptimization = true;
     public boolean animateOnlyVisibleTextures = true;
+    public boolean parallelTextureLoading = true;
     public int chunkFadeInDuration = 0;
     public FogShape fogShape = FogShape.SPHERICAL;
     public boolean fasterClouds = true;
@@ -35,6 +40,7 @@ public class ArgentumConfig {
     public boolean checkGlErrors = false;
     public boolean fontBatching = true;
     public boolean guiItemAtlas = true;
+    public boolean screenBatching = true;
     @SerializedName("direct_rendering_v4")
     public Boolean directRendering;
     public boolean greedyRenderThread = false;

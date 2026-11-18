@@ -71,17 +71,23 @@ public final class ArgentumOptionPages {
         private static final OptionIdentifier<Void> ENTITY_OCCLUSION_INTERVAL = OptionIdentifier.create(Argentum.ID, "entity_occlusion_interval");
         private static final OptionIdentifier<Void> PARTICLE_CULLING = OptionIdentifier.create(Argentum.ID, "particle_culling");
         private static final OptionIdentifier<Void> FAST_PARTICLES = OptionIdentifier.create(Argentum.ID, "fast_particles");
+        private static final OptionIdentifier<Void> PARTICLE_LIGHT_CACHE = OptionIdentifier.create(Argentum.ID, "particle_light_cache");
         private static final OptionIdentifier<Void> ENTITY_INSTANCING = OptionIdentifier.create(Argentum.ID, "entity_instancing");
         private static final OptionIdentifier<Void> BAKE_BLOCK_ENTITIES = OptionIdentifier.create(Argentum.ID, "bake_block_entities");
         private static final OptionIdentifier<Void> NAME_TAG_BATCHING = OptionIdentifier.create(Argentum.ID, "name_tag_batching");
+        private static final OptionIdentifier<Void> HOLOGRAM_FAST_PATH = OptionIdentifier.create(Argentum.ID, "hologram_fast_path");
+        private static final OptionIdentifier<Void> TICK_CULLING = OptionIdentifier.create(Argentum.ID, "tick_culling");
+        private static final OptionIdentifier<Void> ENTITY_SHADOW_CACHE = OptionIdentifier.create(Argentum.ID, "entity_shadow_cache");
         private static final OptionIdentifier<Void> FONT_BATCHING = OptionIdentifier.create(Argentum.ID, "font_batching");
         private static final OptionIdentifier<Void> GUI_ITEM_ATLAS = OptionIdentifier.create(Argentum.ID, "gui_item_atlas");
+        private static final OptionIdentifier<Void> SCREEN_BATCHING = OptionIdentifier.create(Argentum.ID, "screen_batching");
         private static final OptionIdentifier<Void> DIRECT_RENDERING = OptionIdentifier.create(Argentum.ID, "direct_rendering");
         private static final OptionIdentifier<Void> SAFE_CHUNK_EDGES = OptionIdentifier.create(Argentum.ID, "safe_chunk_edges");
         private static final OptionIdentifier<Void> CHECK_GL_ERRORS = OptionIdentifier.create(Argentum.ID, "check_gl_errors");
         private static final OptionIdentifier<Void> FASTER_END_PORTALS = OptionIdentifier.create(Argentum.ID, "faster_end_portals");
         private static final OptionIdentifier<Void> FASTER_WEATHER = OptionIdentifier.create(Argentum.ID, "faster_weather");
         private static final OptionIdentifier<Void> GREEDY_RENDER_THREAD = OptionIdentifier.create(Argentum.ID, "greedy_render_thread");
+        private static final OptionIdentifier<Void> PARALLEL_TEXTURE_LOADING = OptionIdentifier.create(Argentum.ID, "parallel_texture_loading");
         private static final OptionIdentifier<Void> FOG_SHAPE = OptionIdentifier.create(Argentum.ID, "fog_shape");
         private static final OptionIdentifier<Void> FULLSCREEN_MODE = OptionIdentifier.create(Argentum.ID, "fullscreen_mode");
         private static final OptionIdentifier<Void> FULLSCREEN_RESOLUTION = OptionIdentifier.create(Argentum.ID, "fullscreen_resolution");
@@ -347,8 +353,11 @@ public final class ArgentumOptionPages {
                         .setEnabledPredicate(() -> CONFIG.entityCulling)
                         .setImpact(OptionImpact.VARIES)
                         .build())
+                .add(toggle(Option.TICK_CULLING, OptionImpact.MEDIUM,
+                        (config, value) -> config.tickCulling = value, config -> config.tickCulling))
                 .add(toggle(Option.PARTICLE_CULLING, OptionImpact.LOW, (config7, value4) -> config7.particleCulling = value4, config8 -> config8.particleCulling))
                 .add(toggle(Option.FAST_PARTICLES, OptionImpact.MEDIUM, (config, value) -> config.fastParticles = value, config -> config.fastParticles))
+                .add(toggle(Option.PARTICLE_LIGHT_CACHE, OptionImpact.LOW, (config, value) -> config.particleLightCache = value, config -> config.particleLightCache))
                 .build();
 
         OptionGroup rendering = OptionGroup.createBuilder()
@@ -363,6 +372,10 @@ public final class ArgentumOptionPages {
                         .setEnabledPredicate(() -> CONFIG.fontBatching)
                         .setImpact(OptionImpact.MEDIUM)
                         .build())
+                .add(toggle(Option.HOLOGRAM_FAST_PATH, OptionImpact.MEDIUM,
+                        (config, value) -> config.hologramFastPath = value, config -> config.hologramFastPath))
+                .add(toggle(Option.ENTITY_SHADOW_CACHE, OptionImpact.LOW,
+                        (config, value) -> config.entityShadowCache = value, config -> config.entityShadowCache))
                 .add(toggle(StandardOptions.Option.ANIMATE_VISIBLE_TEXTURES,
                         OptionImpact.HIGH,
                         (config, value) -> config.animateOnlyVisibleTextures = value,
@@ -370,6 +383,8 @@ public final class ArgentumOptionPages {
                 .add(toggle(Option.FONT_BATCHING, OptionImpact.HIGH, (config3, value2) -> config3.fontBatching = value2, config4 -> config4.fontBatching))
                 .add(toggle(Option.GUI_ITEM_ATLAS, OptionImpact.HIGH,
                         (config, value) -> config.guiItemAtlas = value, config -> config.guiItemAtlas))
+                .add(toggle(Option.SCREEN_BATCHING, OptionImpact.MEDIUM,
+                        (config, value) -> config.screenBatching = value, config -> config.screenBatching))
                 .add(toggle(Option.DIRECT_RENDERING, OptionImpact.HIGH,
                         (config, value) -> config.directRendering = value, config -> config.directRendering()))
                 .add(toggle(StandardOptions.Option.TRANSLUCENT_FACE_SORTING,
@@ -395,6 +410,8 @@ public final class ArgentumOptionPages {
                 .add(toggle(Option.GREEDY_RENDER_THREAD,
                         OptionImpact.LOW,
                         (config, value) -> config.greedyRenderThread = value, config -> config.greedyRenderThread))
+                .add(toggle(Option.PARALLEL_TEXTURE_LOADING, OptionImpact.LOW,
+                        (config, value) -> config.parallelTextureLoading = value, config -> config.parallelTextureLoading))
                 .build();
 
         return page(Page.PERFORMANCE, chunkUpdates, culling, rendering);

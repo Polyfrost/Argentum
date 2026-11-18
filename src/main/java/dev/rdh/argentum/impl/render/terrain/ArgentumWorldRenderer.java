@@ -27,7 +27,9 @@ import dev.rdh.argentum.impl.render.environment.WeatherRenderer;
 import dev.rdh.argentum.impl.render.environment.EndPortalRenderer;
 import dev.rdh.argentum.impl.render.terrain.fog.ArgentumFogService;
 
+import net.minecraft.block.entity.BeaconBlockEntity;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.MobSpawnerBlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SkullBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -44,6 +46,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.util.math.Box;
+
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +71,7 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     private ChunkRenderMatrices matrices = null;
     private boolean renderingBlockEntities;
     private final List<BlockEntity> bakeCandidates = new ArrayList<>();
+    private final ReferenceOpenHashSet<Entity> hiddenEntities = new ReferenceOpenHashSet<>();
 
     /**
      * @return The ArgentumWorldRenderer based on the current dimension
@@ -124,6 +129,7 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     protected void unloadWorld() {
         this.entityGatherer.clear();
         this.entityOcclusionCuller.clear();
+        this.hiddenEntities.clear();
         this.entityInstancing.discardBatch();
         this.nameTagBatch.discard();
         BakedBlockEntities.clearSlotSheets();
@@ -191,7 +197,7 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
     }
 
     public void beginEntityRendering() {
-        this.entityShadowBatch.beginFrame();
+        this.entityShadowBatch.beginFrame(this.world);
         this.entityInstancing.beginBatch(this.matrices == null ? null : this.matrices.modelView());
     }
 
@@ -264,6 +270,10 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
         return this.isEntitySectionVisible(box) && this.entityOcclusionCuller.isVisible(entity);
     }
 
+    public boolean isEntityHidden(Entity entity) {
+        return this.hiddenEntities.contains(entity);
+    }
+
     public static boolean hasNameTag(Entity entity) {
         return entity.shouldShowNameTag() || entity.hasCustomName() || entity instanceof PlayerEntity;
     }
@@ -278,8 +288,10 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
         boolean batching = this.entityInstancing.isBatchActive();
         List<Entity> entities = this.entityGatherer.getLoadedEntityList((ClientWorld)this.world,
                 MathHelper.floor(cameraX) >> 4, MathHelper.floor(cameraZ) >> 4, this.getEffectiveRenderDistance() + 1);
+        boolean trackHidden = !this.entityInstancing.isShadowPass() && Argentum.CONFIG.tickCulling;
         if (!this.entityInstancing.isShadowPass()) {
             this.entityOcclusionCuller.prepare(entities, camera, tickDelta, this.matrices, cameraX, cameraY, cameraZ);
+            this.hiddenEntities.clear();
         }
 
         int rendered = 0;
@@ -295,6 +307,9 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
                 boolean visible = inFrustum && this.isEntityVisible(entity);
 
                 if (!visible && entity.rider != minecraft.player) {
+                    if (trackHidden) {
+                        this.hiddenEntities.add(entity);
+                    }
                     if (entity instanceof WitherSkullEntity || (inFrustum && hasNameTag(entity))) {
                         dispatcher.renderNameTag(entity, tickDelta);
                     }
@@ -350,6 +365,27 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
         float z = (float)(particle.z - camera.intZ) - camera.fracZ;
         float halfWidth = particle.width / 2.0F;
         return frustum.testAab(x - halfWidth, y, z - halfWidth, x + halfWidth, y + particle.height, z + halfWidth);
+    }
+
+    private boolean isBlockEntityInFrustum(BlockEntity blockEntity) {
+        Viewport viewport = this.getLastViewport();
+        if (viewport == null || !(viewport.getFrustum() instanceof PlaneFrustum frustum)) {
+            return true;
+        }
+        BlockPos pos = blockEntity.getPos();
+        CameraTransform camera = viewport.getTransform();
+        float x = (float)(pos.getX() - camera.intX) - camera.fracX;
+        float y = (float)(pos.getY() - camera.intY) - camera.fracY;
+        float z = (float)(pos.getZ() - camera.intZ) - camera.fracZ;
+        if (blockEntity instanceof BeaconBlockEntity) {
+            return frustum.testAab(x, y, z, x + 1.0F, (float)(256 - camera.intY) - camera.fracY, z + 1.0F);
+        }
+        var renderer = BlockEntityRenderDispatcher.INSTANCE.getRenderer(blockEntity);
+        // the spawner mob is drawn at a fixed scale, so large mobs reach far outside the block
+        if (blockEntity instanceof MobSpawnerBlockEntity || renderer != null && renderer.shouldRenderOffScreen()) {
+            return true;
+        }
+        return frustum.testAab(x - 3.0F, y - 3.0F, z - 3.0F, x + 4.0F, y + 4.0F, z + 4.0F);
     }
 
     private Box cullableParticleBox(Particle particle) {
@@ -415,6 +451,7 @@ public class ArgentumWorldRenderer extends SimpleWorldRenderer<World, ArgentumRe
         this.endPortalRenderer.begin(list);
         for (var blockEntity : list) {
             if (blockEntity instanceof SkullBlockEntity || blockEntity instanceof SignBlockEntity) this.bakeCandidates.add(blockEntity);
+            if (!this.isBlockEntityInFrustum(blockEntity)) continue;
             try {
                 if (!this.endPortalRenderer.render(blockEntity, partialTicks)) {
                     BlockEntityRenderDispatcher.INSTANCE.render(blockEntity, partialTicks, -1);
