@@ -10,8 +10,6 @@ import java.nio.IntBuffer;
 
 public final class AtlasUploads {
     private static final int RECT_FIELDS = 8; // level, x, y, width, height, format, type, byte offset
-    private static final int MAX_BATCH_BYTES = 4 << 20;
-    private static final int MAX_BATCH_RECTS = 1024;
     private static ByteBuffer pixels = MemoryUtil.memAlloc(1 << 20);
     private static int[] rects = new int[RECT_FIELDS * 64];
     private static int count, buffer;
@@ -33,18 +31,9 @@ public final class AtlasUploads {
         if (!collecting || target != GL11C.GL_TEXTURE_2D) {
             return false;
         }
-        if (data.remaining() > MAX_BATCH_BYTES / Integer.BYTES) {
-            // Earlier uploads must reach the atlas before this one takes the direct path.
-            drain();
-            return false;
-        }
-        int bytes = data.remaining() * Integer.BYTES;
-        if (bytes > MAX_BATCH_BYTES - pixels.position() || count == MAX_BATCH_RECTS) {
-            drain();
-        }
+        int bytes = data.remaining() * 4;
         if (pixels.remaining() < bytes) {
-            pixels = MemoryUtil.memRealloc(pixels,
-                    Math.min(MAX_BATCH_BYTES, Math.max(pixels.capacity() * 2, pixels.position() + bytes)));
+            pixels = MemoryUtil.memRealloc(pixels, Math.max(pixels.capacity() * 2, pixels.position() + bytes));
         }
         if (rects.length < (count + 1) * RECT_FIELDS) {
             rects = java.util.Arrays.copyOf(rects, rects.length * 2);
@@ -65,10 +54,6 @@ public final class AtlasUploads {
 
     public static void flush() {
         collecting = false;
-        drain();
-    }
-
-    private static void drain() {
         if (count == 0) {
             return;
         }
@@ -77,16 +62,13 @@ public final class AtlasUploads {
         }
         GL15C.glBindBuffer(GL21C.GL_PIXEL_UNPACK_BUFFER, buffer);
         pixels.flip();
-        try {
-            GL15C.glBufferData(GL21C.GL_PIXEL_UNPACK_BUFFER, pixels, GL15C.GL_STREAM_DRAW);
-            for (int i = 0; i < count * RECT_FIELDS; i += RECT_FIELDS) {
-                GL11C.glTexSubImage2D(GL11C.GL_TEXTURE_2D, rects[i], rects[i + 1], rects[i + 2], rects[i + 3], rects[i + 4],
-                        rects[i + 5], rects[i + 6], rects[i + 7]);
-            }
-        } finally {
-            GL15C.glBindBuffer(GL21C.GL_PIXEL_UNPACK_BUFFER, 0);
-            pixels.clear();
-            count = 0;
+        GL15C.glBufferData(GL21C.GL_PIXEL_UNPACK_BUFFER, pixels, GL15C.GL_STREAM_DRAW);
+        for (int i = 0; i < count * RECT_FIELDS; i += RECT_FIELDS) {
+            GL11C.glTexSubImage2D(GL11C.GL_TEXTURE_2D, rects[i], rects[i + 1], rects[i + 2], rects[i + 3], rects[i + 4],
+                    rects[i + 5], rects[i + 6], rects[i + 7]);
         }
+        GL15C.glBindBuffer(GL21C.GL_PIXEL_UNPACK_BUFFER, 0);
+        pixels.clear();
+        count = 0;
     }
 }
