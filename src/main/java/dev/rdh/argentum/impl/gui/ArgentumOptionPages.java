@@ -91,6 +91,7 @@ public final class ArgentumOptionPages {
         private static final OptionIdentifier<Void> FOG_SHAPE = OptionIdentifier.create(Argentum.ID, "fog_shape");
         private static final OptionIdentifier<Void> FULLSCREEN_MODE = OptionIdentifier.create(Argentum.ID, "fullscreen_mode");
         private static final OptionIdentifier<Void> FULLSCREEN_RESOLUTION = OptionIdentifier.create(Argentum.ID, "fullscreen_resolution");
+        private static final OptionIdentifier<Void> VERTEX_FORMAT = OptionIdentifier.create(Argentum.ID, "vertex_format");
     }
 
     private ArgentumOptionPages() {
@@ -272,6 +273,11 @@ public final class ArgentumOptionPages {
 								}))
                         .setBinding((config, value) -> config.fogShape = value, config -> config.fogShape)
                         .build())
+                .add(option(boolean.class, CONFIG_STORAGE, StandardOptions.Option.SKY_FOG)
+                        .setControl(TickBoxControl::new)
+                        .setBinding((config, value) -> config.useSkyFog = value, config -> config.useSkyFog)
+                        .setImpact(OptionImpact.LOW)
+                        .build())
                 .add(option(int.class, CONFIG_STORAGE, StandardOptions.Option.BIOME_BLEND)
                         .setControl(option -> new SliderControl(option, 0, 14, 1, ControlValueFormatter.biomeBlend()))
                         .setBinding((config, value) -> config.biomeBlendRadius = value, config -> config.biomeBlendRadius)
@@ -305,6 +311,11 @@ public final class ArgentumOptionPages {
                         .setImpact(OptionImpact.MEDIUM)
                         .setFlags(OptionFlag.REQUIRES_ASSET_RELOAD)
                         .build())
+                .addConditionally(Argentum.rgssFilteringSupported(), () ->
+                        toggle(StandardOptions.Option.RGSS_TEXTURE_FILTERING, OptionImpact.MEDIUM,
+                                (config, value) -> config.rgssTextureFiltering = value,
+                                config -> config.rgssTextureFiltering,
+                                OptionFlag.REQUIRES_RENDERER_RELOAD))
                 .build();
 
         return page(Page.QUALITY, graphics, details);
@@ -410,10 +421,20 @@ public final class ArgentumOptionPages {
                         OptionImpact.LOW,
                         (config, value) -> config.renderPassOptimization = value,
                         config -> config.renderPassOptimization, OptionFlag.REQUIRES_RENDERER_RELOAD))
-                .add(toggle(StandardOptions.Option.COMPACT_VERTEX_FORMAT,
-                        OptionImpact.MEDIUM,
-                        (config, value) -> config.compactVertexFormat = value, config -> config.compactVertexFormat,
-                        OptionFlag.REQUIRES_RENDERER_RELOAD))
+                .add(option(ArgentumConfig.VertexFormat.class, CONFIG_STORAGE, Option.VERTEX_FORMAT)
+                        .setControl(option -> Argentum.quadRelativeSupported()
+                                ? new CyclingControl<>(option, ArgentumConfig.VertexFormat.class, new TextComponent[]{
+                                        text("value.vanilla"), text("value.compact"), text("value.quad_relative")
+                                })
+                                : new CyclingControl<>(option, new ArgentumConfig.VertexFormat[]{
+                                        ArgentumConfig.VertexFormat.VANILLA, ArgentumConfig.VertexFormat.COMPACT
+                                }, new TextComponent[]{
+                                        text("value.vanilla"), text("value.compact")
+                                }))
+                        .setBinding((config, value) -> config.vertexFormat = value, config -> Argentum.effectiveVertexFormat())
+                        .setImpact(OptionImpact.MEDIUM)
+                        .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
+                        .build())
                 .add(toggle(Option.GREEDY_RENDER_THREAD,
                         OptionImpact.LOW,
                         (config, value) -> config.greedyRenderThread = value, config -> config.greedyRenderThread))

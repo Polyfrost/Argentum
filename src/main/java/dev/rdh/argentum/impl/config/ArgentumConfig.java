@@ -2,6 +2,8 @@ package dev.rdh.argentum.impl.config;
 
 import com.google.gson.annotations.SerializedName;
 import org.embeddedt.embeddium.impl.render.chunk.occlusion.AsyncOcclusionMode;
+import org.embeddedt.embeddium.impl.render.chunk.vertex.format.ChunkMeshFormats;
+import org.embeddedt.embeddium.impl.render.chunk.vertex.format.ChunkVertexType;
 
 import dev.rdh.argentum.impl.render.terrain.fog.ArgentumFogService.FogShape;
 
@@ -29,6 +31,8 @@ public class ArgentumConfig {
     public boolean parallelTextureLoading = true;
     public int chunkFadeInDuration = 0;
     public FogShape fogShape = FogShape.SPHERICAL;
+    public boolean useSkyFog = false;
+    public boolean rgssTextureFiltering = false;
     public boolean fasterClouds = true;
     public boolean defaultClouds = false;
     public boolean fasterWeather = true;
@@ -36,7 +40,7 @@ public class ArgentumConfig {
     public int cpuRenderAheadLimit = 3;
     public int biomeBlendRadius = 3;
     public boolean safeChunkEdges = false;
-    public boolean compactVertexFormat = true;
+    public VertexFormat vertexFormat = VertexFormat.COMPACT;
     public boolean checkGlErrors = false;
     public boolean fontBatching = true;
     public boolean guiItemAtlas = true;
@@ -66,6 +70,21 @@ public class ArgentumConfig {
         }
         if (this.fogShape == null) {
             this.fogShape = FogShape.SPHERICAL;
+        }
+        if (this.vertexFormat == null) {
+            this.vertexFormat = VertexFormat.COMPACT;
+        }
+    }
+
+    public enum VertexFormat {
+        VANILLA(ChunkMeshFormats.VANILLA_LIKE),
+        COMPACT(ChunkMeshFormats.COMPACT),
+        QUAD_RELATIVE(ChunkMeshFormats.QUAD_RELATIVE);
+
+        public final ChunkVertexType type;
+
+        VertexFormat(ChunkVertexType type) {
+            this.type = type;
         }
     }
 }

@@ -2,6 +2,8 @@ package dev.rdh.argentum.impl;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import org.embeddedt.embeddium.impl.gl.device.RenderDevice;
+import org.embeddedt.embeddium.impl.render.shader.ShaderLoader;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.slf4j.Logger;
@@ -48,6 +50,22 @@ public class Argentum implements ClientModInitializer {
     public static boolean renderAheadSupported() {
         GLCapabilities caps = GL.getCapabilities();
         return caps.OpenGL32 || caps.GL_ARB_sync;
+    }
+
+    public static boolean rgssFilteringSupported() {
+        GLCapabilities caps = GL.getCapabilities();
+        return !ShaderLoader.useLegacyGlsl() && (caps.OpenGL33 || caps.GL_ARB_sampler_objects);
+    }
+
+    public static boolean quadRelativeSupported() {
+        return RenderDevice.INSTANCE.getDeviceFunctions().textureBufferFunctions().isSupported();
+    }
+
+    public static ArgentumConfig.VertexFormat effectiveVertexFormat() {
+        ArgentumConfig.VertexFormat format = CONFIG.vertexFormat;
+        return format == ArgentumConfig.VertexFormat.QUAD_RELATIVE && !quadRelativeSupported()
+                ? ArgentumConfig.VertexFormat.COMPACT
+                : format;
     }
 
     private static Path getConfigPath(Path c) {
