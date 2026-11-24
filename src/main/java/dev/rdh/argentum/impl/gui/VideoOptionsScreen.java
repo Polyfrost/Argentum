@@ -7,6 +7,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.taumc.celeritas.api.options.structure.OptionFlag;
 
+import dev.rdh.argentum.impl.Argentum;
 import dev.rdh.argentum.impl.compat.PylonFullscreen;
 
 import java.util.Set;
@@ -17,6 +18,7 @@ public final class VideoOptionsScreen extends Screen {
     private final CeleritasVideoOptionsController controller;
     private int lastMouseX = -1;
     private int lastMouseY = -1;
+    private boolean exclusiveFullscreen = Argentum.CONFIG.exclusiveFullscreen;
 
     public VideoOptionsScreen(Screen parent) {
         this.parent = parent;
@@ -26,6 +28,10 @@ public final class VideoOptionsScreen extends Screen {
                 super.applyFlagSideEffects(flags);
                 Minecraft minecraft = Minecraft.getInstance();
                 boolean fullscreenModeChanged = PylonFullscreen.sync();
+                if (exclusiveFullscreen != Argentum.CONFIG.exclusiveFullscreen) {
+                    exclusiveFullscreen = Argentum.CONFIG.exclusiveFullscreen;
+                    minecraft.options.save();
+                }
                 if (minecraft.isFullscreen() != minecraft.options.fullscreen) {
                     minecraft.toggleFullscreen();
                     minecraft.options.fullscreen = minecraft.isFullscreen();
