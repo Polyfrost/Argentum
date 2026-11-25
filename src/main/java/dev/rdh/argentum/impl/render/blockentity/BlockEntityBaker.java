@@ -327,7 +327,9 @@ public final class BlockEntityBaker {
         }
         data.slots.addAll(text.pages());
 
-        Material material = this.buffers.getRenderPassConfiguration().getMaterialForRenderType(RenderPassConfigurationBuilder.DECAL);
+        Material material = this.buffers.getRenderPassConfiguration().getMaterialForRenderType(
+                Minecraft.getInstance().textRenderer.argentum$getBatcher().isBlending()
+                        ? RenderPassConfigurationBuilder.BLENDED_DECAL : RenderPassConfigurationBuilder.DECAL);
         float shade = shade(this.textTransform.transformDirection(0.0F, 0.0F, -1.0F, this.normal));
         float[] vertices = text.vertices();
         int[] colors = text.colors();
@@ -467,7 +469,7 @@ public final class BlockEntityBaker {
         this.buffers.get(material).getVertexBuffer(ModelQuadFacing.UNASSIGNED).push(vertices, material);
     }
 
-    private static float shade(Vector3f normal) {
+    public static float shade(Vector3f normal) {
         return Math.min(1.0F, light(normal));
     }
 
